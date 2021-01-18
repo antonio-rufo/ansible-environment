@@ -1,0 +1,67 @@
+---
+# tasks file for ql_common_linux
+
+### EPEL repo
+
+- name: Add EPEL Yum Repository
+  yum_repository:
+    name: epel
+    description: EPEL Yum Repo
+    baseurl: https://dl.fedoraproject.org/pub/epel/7/x86_64
+    gpgcheck: yes
+    gpgkey: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-7
+  become: yes
+
+- name: Yum update
+  yum:
+    name: '*'
+    state: latest
+    releasever: 7
+  become: yes
+
+- name: Ensure epel repo present
+  yum:
+    name: epel-release
+    state: present
+
+### Standard packages
+
+- name: Ensure common packages present
+  yum:
+    name: acl
+    state: present
+
+- name: Ensure common packages present
+  yum:
+    name: screen
+    state: present
+
+- name: Ensure common packages present
+  yum:
+    name: bash-completion
+    state: present
+
+- name: Ensure common packages present
+  yum:
+    name: dos2unix
+    state: present
+
+- name: Ensure common packages present
+  yum:
+    name: htop
+    state: present
+
+- name: Ensure common packages present
+  yum:
+    name: mlocate
+    state: present
+
+- name: Ensure common packages present
+  yum:
+    name: unzip
+    state: present
+
+- name: Ensure common packages present
+  yum:
+    name: wget
+    state: present

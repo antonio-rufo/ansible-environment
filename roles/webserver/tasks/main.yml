@@ -1,0 +1,26 @@
+---
+
+- name: Install httpd
+  package:
+    name: "httpd"
+    state: present
+
+- name: Copy HTML file
+  get_url:
+    url: "{{ url }}"
+    dest: "/var/www/html/index.html"
+
+- name: Starting httpd services
+  service:
+    name: "httpd"
+    state: started
+    enabled: yes
+
+- route53:
+    command: create
+    zone: rackspace.antoniorufo.com
+    record: www.rackspace.antoniorufo.com
+    type: A
+    ttl: 7200
+    value: "{{ ip }}"
+    wait: yes

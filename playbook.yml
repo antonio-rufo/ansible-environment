@@ -1,0 +1,106 @@
+-
+  name: Setup EC2 Instance
+  hosts: localhost
+  any_errors_fatal: true
+  connection: local
+
+  vars:
+    id: Ansible
+    vpc_id: vpc-d52e15b2
+    region: ap-southeast-2
+    image: ami-06ce513624b435a22
+    instance_type: t2.micro
+    key_name: antonio-ap-southeast-2-development-internal
+    subnet_id: subnet-0eaeb347
+    sec_group: "{{ id }}-sg"
+
+  tasks:
+    - name: Provision EC2 instances
+      block:
+        - name: Create security group
+          ec2_group:
+            name: "{{ sec_group }}"
+            description: "Security Group for app {{ id }}"
+            vpc_id: "{{ vpc_id }}"
+            region: "{{ region }}"
+            rules:
+              - proto: tcp
+                ports:
+                  - 22
+                cidr_ip: 0.0.0.0/0
+                rule_desc: allow all on ssh port
+          register: result_sec_group
+          tags:
+            - prov
+
+        - name: Launching ec2
+          ec2:
+            key_name: "{{ key_name }}"
+            instance_type: "{{ instance_type }}"
+            image: "{{ image }}"
+            region: "{{ region }}"
+            wait: yes
+            group_id: "{{ result_sec_group.group_id }}"
+            vpc_subnet_id: "{{ subnet_id }}"
+            instance_tags:
+              Name: Ansible-EC2
+          register: ec2
+          tags:
+            - prov
+
+        - name: Add EC2 instance to host group
+          add_host:
+            hostname: "{{ item.public_ip }}"
+            groupname: webserver
+          loop: "{{ ec2.instances }}"
+          tags:
+            - prov
+
+        - name: Wait for SSH to come up
+          wait_for:
+            host: "{{ item.public_dns_name }}"
+            port: 22
+            state: started
+          loop: "{{ ec2.instances }}"
+          tags:
+            - prov
+
+-
+  name: Configure EC2 instance with Role
+  hosts: webserver
+  connection: ssh
+  remote_user: ec2-user
+  gather_facts: yes
+  tasks:
+    - name: Run Role
+      include_role:
+        name: ql_common_linux
+  tags:
+    - role
+
+-
+  name: Create AMI image from instance
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Bake AMI image
+      ec2_ami:
+        instance_id: "{{ ec2.instances.0.id }}"
+        wait: yes
+        name: ansible_ami
+  tags:
+    - ami
+
+-
+  name: Terminate Instances to save $$$
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Terminate Instances
+      ec2:
+        instance_id: "{{ ec2.instances.0.id }}"
+        region: ap-southeast-2
+        state: 'absent'
+        wait: yes
+  tags:
+    - term
