@@ -16,7 +16,6 @@
   yum:
     name: '*'
     state: latest
-    releasever: 7
   become: yes
 
 - name: Ensure epel repo present
